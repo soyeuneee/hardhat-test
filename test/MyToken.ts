@@ -4,8 +4,8 @@ import { MyToken } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { describe, it, beforeEach } from "mocha";
 
-const mintingAmount = 1n;
-const decimals = 18n;
+const mintingAmount = 100n;
+const decimals = 10n;
 
 describe("My Token", () => {
   let myTokenC: MyToken;
@@ -65,7 +65,7 @@ describe("My Token", () => {
         .withArgs(
           signer0.address,
           signer1.address,
-          hre.ethers.parseUnits("0.4", decimals),
+          hre.ethers.parseUnits("0.5", decimals),
         );
       expect(await myTokenC.balanceOf(signer1.address)).equal(
         hre.ethers.parseUnits("0.5", decimals),
@@ -80,6 +80,69 @@ describe("My Token", () => {
           signer1.address,
         ),
       ).to.be.revertedWith("insufficient balance");
+    });
+  });
+  describe("TransferFrom", () => {
+    it("should emit Approval event", async () => {
+      const signer1 = signers[1];
+      await expect(
+        myTokenC.approve(
+          signer1.address,
+          hre.ethers.parseUnits("10", decimals),
+        ),
+      )
+        .to.emit(myTokenC, "Approval")
+        .withArgs(signer1.address, hre.ethers.parseUnits("10", decimals));
+    });
+    it("should be reverted with insufficient allowance error", async () => {
+      const signer0 = signers[0];
+      const signer1 = signers[1];
+      await expect(
+        myTokenC
+          .connect(signer1)
+          .transferFrom(
+            signer0.address,
+            signer1.address,
+            hre.ethers.parseUnits("1", decimals),
+          ),
+      ).to.be.revertedWith("insufficient allowance");
+    });
+    it("should transfer signer0's MT to signer1 by signer1 (approve & transferFrom)", async () => {
+      const signer0 = signers[0];
+      const signer1 = signers[1];
+      const amount = hre.ethers.parseUnits("1", decimals);
+
+      // 1. approve: signer0이 signer1에게 1MT 이동 권한 부여
+      await expect(myTokenC.connect(signer0).approve(signer1.address, amount))
+        .to.emit(myTokenC, "Approval")
+        .withArgs(signer1.address, amount);
+
+      // 2. transferFrom: signer1이 signer0의 MT를 자신의 주소로 전송
+      await myTokenC
+        .connect(signer1)
+        .transferFrom(signer0.address, signer1.address, amount);
+
+      // 3. balance 확인
+      expect(await myTokenC.balanceOf(signer0.address)).equal(
+        mintingAmount * 10n ** decimals - amount,
+      );
+      expect(await myTokenC.balanceOf(signer1.address)).equal(amount);
+    });
+
+    it("should be reverted when transferFrom amount exceeds minted amount", async () => {
+      const signer0 = signers[0];
+      const signer1 = signers[1];
+      const amount = hre.ethers.parseUnits(
+        (mintingAmount + 1n).toString(),
+        decimals,
+      );
+
+      await myTokenC.connect(signer0).approve(signer1.address, amount);
+      await expect(
+        myTokenC
+          .connect(signer1)
+          .transferFrom(signer0.address, signer1.address, amount),
+      ).to.be.reverted;
     });
   });
 });
