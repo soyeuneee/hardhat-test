@@ -39,6 +39,10 @@ contract MyToken {
         emit Transfer(from, to, amount);
     }
 
+    function mint(uint256 amount, address owner) external {
+        _mint(amount, owner);
+    }
+
     function _mint(uint256 amount, address owner) internal {
         totalSupply += amount;
         balanceOf[owner] += amount;
@@ -67,3 +71,6 @@ transferFrom
 * token owner --> router contract --> bank contract(multi contract)
 
 */
+
+
+
