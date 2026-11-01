@@ -29,10 +29,9 @@ contract TinyBank {
     // genesis staking
     function updateReward(address to) internal {
         if (staked[to] > 0) {
-            uint256 blocks = block.number - lastClaimedBlock[to];
-            uint256 reward = (blocks * rewardPerBlock * staked[to]) /
-                totalStaked;
-            stakingToken.mint(reward, to);
+        uint256 blocks = block.number - lastClaimedBlock[to];
+        uint256 reward = (blocks * rewardPerBlock * staked[to]) / totalStaked;
+        stakingToken.mint(reward, to);
         }
         lastClaimedBlock[to] = block.number;
     }
