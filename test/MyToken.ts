@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { MyToken } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { describe, it, beforeEach } from "mocha";
+import { DECIMALS } from "./constant";
 
 const mintingAmount = 100n;
 const decimals = 10n;
@@ -48,6 +49,15 @@ describe("My Token", () => {
       expect(await myTokenC.balanceOf(signer0.address)).equal(
         mintingAmount * 10n ** decimals,
       );
+    });
+
+    // TDD: Test Driven Development
+    it("should return or revert when mintint infititly", async () => {
+      const hacker = signers[2];
+      const mintingAgainAmount = hre.ethers.parseUnits("100", DECIMALS);
+      await expect(
+        myTokenC.connect(hacker).mint(mintingAgainAmount, hacker.address),
+      ).to.be.revertedWith("You are not authorized to manage this token");
     });
   });
 
